@@ -1,0 +1,53 @@
+#!/bin/bash
+LINE="$(whoami):$(pwd)$"
+ENDOFFILE="EOFba33b97009ca086d90120333eed975eeEOF"
+echo "" > /data/io/out
+
+COMMANDPARAMS=$*
+
+
+function runremote(){
+   COMMAND=$1
+   #write the users command to the input file
+   echo "$COMMAND" > /data/io/in
+   #append the end of file string to the input file
+   echo $ENDOFFILE >> /data/io/in
+
+   #wait until the outputfile contains the end of file string
+   while ! $(grep -Fxq $ENDOFFILE /data/io/out)
+   do
+      :
+   done
+
+   #read the result of the command
+   RESULT=$(cat /data/io/out)
+   #remove the end of file string
+   RESULT=$(echo "$RESULT" | sed "/$ENDOFFILE/d")
+   #clear the outputfile
+   echo "" > /data/io/out
+   #print the result string
+   echo "$RESULT"
+
+}
+
+#if this script is called with parameters then we run these parameters on the remote shell...
+if [[ -n "${COMMANDPARAMS// }" ]]; then
+   runremote "$COMMANDPARAMS"
+   exit 0
+fi
+
+#...otherwise we provide an interactive mode for receiving commands to run on the remote shell
+
+#read command from the users terminal
+read -p $LINE
+
+#run until the user types exit
+while [ "$REPLY" != "exit" ]; do
+
+   runremote "$REPLY"
+
+   #read the next command from the terminal
+   read -p $LINE
+done
+
+
