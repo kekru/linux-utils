@@ -1,0 +1,29 @@
+#!/bin/bash
+touch /data/io/in
+touch /data/io/out
+
+ENDOFFILE="EOFba33b97009ca086d90120333eed975eeEOF"
+
+while [ 1 ]; do
+
+   #wait until $ENDOFFILE appears in /data/io/in
+   while ! grep -Fxq $ENDOFFILE /data/io/in
+   do
+     :
+   done
+
+   #get the command we should execute
+   COMMAND=$(cat /data/io/in)
+   #remove the end of file string from the command
+   COMMAND=$(echo "$COMMAND" | sed "/$ENDOFFILE/d")
+   #clear the input file
+   echo "" > /data/io/in
+#   echo "$COMMAND"
+   #run the command and save output to the outputfile
+   sh -c "$COMMAND" > /data/io/out
+   #append end of file string to the outputfile
+   echo $ENDOFFILE >> /data/io/out
+
+done
+
+
