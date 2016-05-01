@@ -20,6 +20,13 @@ while [ 1 ]; do
    COMMAND=$(echo "$COMMAND" | sed "/$ENDOFFILE/d")
    #clear the input file
    echo "" > /data/io/in
+
+   #if the command has the prefix "-c " then remove it. ssh sends it when direcly giving ssh a command, e.g. sshpass -p "passwd" ssh user@myhost.org "cd /data && pwd"
+   PREFIX="-c "
+   if [[ $COMMAND == "$PREFIX"*  ]]; then
+      COMMAND=$(echo "$COMMAND" | sed "s|-c ||")
+   fi
+
 #   echo "$COMMAND"
    #run the command and save output to the outputfile
    sh -c "$COMMAND" > /data/io/out
