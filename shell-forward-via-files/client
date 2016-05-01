@@ -1,5 +1,11 @@
 #!/bin/bash
 LINE="$(whoami):$(pwd)$"
+
+touch /data/io/in
+touch /data/io/out
+chmod 777 /data/io/in
+chmod 777 /data/io/out
+
 ENDOFFILE="EOFba33b97009ca086d90120333eed975eeEOF"
 echo "" > /data/io/out
 
