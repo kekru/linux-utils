@@ -88,10 +88,10 @@ function createServerCert {
         IPSTRING=",IP:$SERVERIP"
     fi
 
-    openssl genrsa -aes256 -out $TARGETDIR/server-key.pem 4096
+    openssl genrsa -out $TARGETDIR/server-key.pem 4096
     openssl req -subj "/CN=$NAME" -new -key $TARGETDIR/server-key.pem -out $TARGETDIR/server.csr
     echo "subjectAltName = DNS:$NAME$IPSTRING" > $TARGETDIR/extfile.cnf
-    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -sha256 -in $TARGETDIR/server.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/server-cert.pem -extfile $TARGETDIR/extfile.cnf
+    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in $TARGETDIR/server.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/server-cert.pem -extfile $TARGETDIR/extfile.cnf
 
     rm $TARGETDIR/server.csr $TARGETDIR/extfile.cnf $TARGETDIR/ca.srl
     chmod 0400 $TARGETDIR/server-key.pem
@@ -101,10 +101,10 @@ function createServerCert {
 function createClientCert {
     checkCAFilesExist
 
-    openssl genrsa -aes256 -out $TARGETDIR/client-key.pem 4096
+    openssl genrsa -out $TARGETDIR/client-key.pem 4096
     openssl req -subj "/CN=$NAME" -new -key $TARGETDIR/client-key.pem -out $TARGETDIR/client.csr
     echo "extendedKeyUsage = clientAuth" > $TARGETDIR/extfile.cnf
-    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -sha256 -in $TARGETDIR/client.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/client-cert.pem -extfile $TARGETDIR/extfile.cnf
+    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in $TARGETDIR/client.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/client-cert.pem -extfile $TARGETDIR/extfile.cnf
 
     rm $TARGETDIR/client.csr $TARGETDIR/extfile.cnf $TARGETDIR/ca.srl
     chmod 0400 $TARGETDIR/client-key.pem
