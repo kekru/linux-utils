@@ -14,7 +14,7 @@ case $key in
     shift 
     ;;
     -h|--hostname)
-    SERVERNAME="$2"
+    NAME="$2"
     shift 
     ;;
     -hip|--hostip)
@@ -45,7 +45,7 @@ shift
 done
 
 echo "Mode $MODE"
-echo "Host $SERVERNAME"
+echo "Host/Clientname $NAME"
 echo "Host IP $SERVERIP"
 echo "Targetdir $TARGETDIR"
 echo "Expiration $EXPIRATIONDAYS"
@@ -60,7 +60,7 @@ function usage {
     echo "  -pw|--password            Password for CA Key generation"
     echo "  -t|--targetdir            Targetdir for certfiles and keys"
     echo "  -e|--expirationdays       certificate expiration in day - default: 700 days"    
-    echo "  --ca-subj                 subj string for ca cert"
+    echo "  --ca-subj                 subj string for ca cert - default: Example String..."
     exit 1
 }
 
@@ -72,30 +72,50 @@ function createCA {
     chmod 0444 $TARGETDIR/ca.pem
 }
 
-function createServerCert {
-    openssl genrsa -out $TARGETDIR/server-key.pem 4096
-    openssl req -subj "/CN=$SERVERNAME" -new -key $TARGETDIR/server-key.pem -out $TARGETDIR/server.csr
-    echo "subjectAltName = DNS:$SERVERNAME,IP:$SERVERIP" > $TARGETDIR/extfile.cnf
-    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in $TARGETDIR/server.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/server-cert.pem -extfile $TARGETDIR/extfile.cnf
+function checkCAFilesExist {
+    if [[ ! -f "$TARGETDIR/ca.pem" || ! -f "$TARGETDIR/ca-key.pem" ]]; then
+        echo "$TARGETDIR/ca.pem or $TARGETDIR/ca-key.pem not found. Create CA first with '-m ca'"
+        exit 1
+    fi
+}
 
-    rm $TARGETDIR/server.csr $TARGETDIR/extfile.cnf
+function createServerCert {
+    checkCAFilesExist
+
+    if [[ -z $SERVERIP ]]; then
+        IPSTRING=""
+    else
+        IPSTRING=",IP:$SERVERIP"
+    fi
+
+    openssl genrsa -aes256 -out $TARGETDIR/server-key.pem 4096
+    openssl req -subj "/CN=$NAME" -new -key $TARGETDIR/server-key.pem -out $TARGETDIR/server.csr
+    echo "subjectAltName = DNS:$NAME$IPSTRING" > $TARGETDIR/extfile.cnf
+    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -sha256 -in $TARGETDIR/server.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/server-cert.pem -extfile $TARGETDIR/extfile.cnf
+
+    rm $TARGETDIR/server.csr $TARGETDIR/extfile.cnf $TARGETDIR/ca.srl
     chmod 0400 $TARGETDIR/server-key.pem
     chmod 0444 $TARGETDIR/server-cert.pem
 }
 
 function createClientCert {
-    openssl genrsa -out $TARGETDIR/client-key.pem 4096
-    openssl req -subj '/CN=client' -new -key $TARGETDIR/client-key.pem -out $TARGETDIR/client.csr
-    echo "extendedKeyUsage = clientAuth" > $TARGETDIR/extfile.cnf
-    openssl x509 -passin pass:$PASSWORD -req -days 365 -sha256 -in $TARGETDIR/client.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/client-cert.pem -extfile $TARGETDIR/extfile.cnf
+    checkCAFilesExist
 
-    rm $TARGETDIR/client.csr $TARGETDIR/extfile.cnf
+    openssl genrsa -aes256 -out $TARGETDIR/client-key.pem 4096
+    openssl req -subj "/CN=$NAME" -new -key $TARGETDIR/client-key.pem -out $TARGETDIR/client.csr
+    echo "extendedKeyUsage = clientAuth" > $TARGETDIR/extfile.cnf
+    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -sha256 -in $TARGETDIR/client.csr -CA $TARGETDIR/ca.pem -CAkey $TARGETDIR/ca-key.pem -CAcreateserial -out $TARGETDIR/client-cert.pem -extfile $TARGETDIR/extfile.cnf
+
+    rm $TARGETDIR/client.csr $TARGETDIR/extfile.cnf $TARGETDIR/ca.srl
     chmod 0400 $TARGETDIR/client-key.pem
     chmod 0444 $TARGETDIR/client-cert.pem
+
+    mv $TARGETDIR/client-key.pem $TARGETDIR/client-$NAME-key.pem
+    mv $TARGETDIR/client-cert.pem $TARGETDIR/client-$NAME-cert.pem 
 }
 
 
-if [[ -z $MODE || -z $SERVERNAME || -z $PASSWORD || -z $TARGETDIR ]]; then
+if [[ -z $MODE || ($MODE != "ca" && -z $NAME) || -z $PASSWORD || -z $TARGETDIR ]]; then
     usage   
 fi
 
