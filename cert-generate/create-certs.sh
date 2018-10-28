@@ -2,7 +2,7 @@
 #see https://docs.docker.com/engine/security/https/
 
 EXPIRATIONDAYS=700
-CASUBJSTRING="/C=/ST=/L=/O=MyCompany/OU=IT/CN=DockerProd/emailAddress=test@example.de"
+CASUBJSTRING="/C=GB/ST=London/L=London/O=ExampleCompany/OU=IT/CN=example.com/emailAddress=test@example.com"
 
 while [[ $# -gt 1 ]]
 do
